@@ -19,7 +19,7 @@ func New(fd int, echo bool) *TermSettings {
 
 // Cbreaky set the terminal (actually, STDIN) in a cbreak-like mode.
 // Accepts an optional bool to disable echo as well.
-// On success it returns the original state so you can retore it later.
+// On success it saves the original state so you can retore it later.
 // Example usage:
 //
 // term := termy.New(int(os.Stdin.Fd()), false)

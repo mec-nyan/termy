@@ -1,4 +1,6 @@
-# Termy
+# Termy :tv:
+
+(_pronounced_ tˈɜːmi _, not_ tˈɜːmaɪ)
 
 PKG **Termy** facilitates access to basic (terminal emulator's) functionality.
 

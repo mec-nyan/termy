@@ -144,10 +144,10 @@ func (c *Colour) SetBgHex(colour string) {
 	c.SetBgRGB(fromHex(colour))
 }
 
-// fromHex is a wrapper around HexToRGB.
+// fromHex is a wrapper around hexToRGB.
 // It handles the error so you can use it where you just need the rgb values.
 // It will try to parse a string containing an hex colour.
-// It should be in the format "#RRGGBB" or "RRGGBB".
+// That string should be in the format "#RRGGBB" or "RRGGBB".
 // If it fails, it will return an invalid rgb colour so the defaults are used instead.
 func fromHex(hex string) (r, g, b int) {
 	r, g, b, err := hexToRGB(hex)
@@ -157,6 +157,9 @@ func fromHex(hex string) (r, g, b int) {
 	return
 }
 
+// Internal.
+
+// hexToRGB tries to parse a string containing an hex colour.
 func hexToRGB(colour string) (r, g, b int, err error) {
 	colour, err = getHexColour(colour)
 	if err != nil {
@@ -179,21 +182,7 @@ func hexToRGB(colour string) (r, g, b int, err error) {
 	return
 }
 
-func hexToDec(hex string) (int, error) {
-	n, err := strconv.ParseInt(hex, 16, 0)
-	if err != nil {
-		return 0, fmt.Errorf("'%s' is not a valid hex number", hex)
-	}
-	return int(n), nil
-}
-
-func isValidRGB(r, g, b int) bool {
-	if !in255range(r) || !in255range(g) || !in255range(b) {
-		return false
-	}
-	return true
-}
-
+// getHexColour extracts the hex number from a string in the format "#RRGGBB" or "RRGGBB".
 func getHexColour(str string) (hex string, err error) {
 	// Remove leading '#', if any.
 	if str[0] == '#' {
@@ -228,6 +217,13 @@ func isHexDigit(h rune) bool {
 		}
 	}
 	return false
+}
+
+func isValidRGB(r, g, b int) bool {
+	if !in255range(r) || !in255range(g) || !in255range(b) {
+		return false
+	}
+	return true
 }
 
 func in255range(n int) bool {

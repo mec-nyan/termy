@@ -3,6 +3,7 @@ package colours
 
 import (
 	"fmt"
+	"strconv"
 )
 
 const (
@@ -24,15 +25,38 @@ const (
 	BrightWhite
 )
 
-// Colour holds the sequences for fg and bg using 256 colours.
+// Colour holds the sequences for fg and bg.
 // It doesn't add the CSI nor the terminator, so you can combine theses codes
 // with other (i.e. with bold, underline, etc).
 type Colour struct {
+	// fg and bg are private, so we don't overwrite them by mistake.
 	fg, bg string
 }
 
-// Reset empty the sequences. It will produce no changes at all.
-// If you wish to use the default colours, use UseDefault.
+// Fg returns the currently set fg sequence.
+func (c *Colour) Fg() string {
+	return c.fg
+}
+
+// Bg returns the currently set bg sequence.
+func (c *Colour) Bg() string {
+	return c.bg
+}
+
+// Code return the sequence for setting the foreground and background for the current Colour's state.
+func (c *Colour) Code() string {
+	// If both fg and bg are empty, it will return an empty string, which is valid.
+	if c.fg == "" {
+		return c.bg
+	}
+	if c.bg == "" {
+		return c.fg
+	}
+	return c.fg + ";" + c.bg
+}
+
+// Reset empty the sequences. It will produce no changes beyond cleaning its state.
+// If you wish to use the default colours, use UseDefault instead.
 func (c *Colour) Reset() {
 	c.ResetFg()
 	c.ResetBg()
@@ -108,11 +132,102 @@ func (c *Colour) SetBgRGB(r, g, b int) {
 	c.bg = fmt.Sprintf("48:2:%d:%d:%d", r, g, b)
 }
 
+// SetFgHex sets the foreground to the hex colour provided.
+// If an invalid string/colour is given, the default fg is set instead.
+func (c *Colour) SetFgHex(colour string) {
+	c.SetFgRGB(fromHex(colour))
+}
+
+// SetBgHex sets the background to the hex colour provided.
+// If an invalid string/colour is given, the default bg is set instead.
+func (c *Colour) SetBgHex(colour string) {
+	c.SetBgRGB(fromHex(colour))
+}
+
+// fromHex is a wrapper around HexToRGB.
+// It handles the error so you can use it where you just need the rgb values.
+// It will try to parse a string containing an hex colour.
+// It should be in the format "#RRGGBB" or "RRGGBB".
+// If it fails, it will return an invalid rgb colour so the defaults are used instead.
+func fromHex(hex string) (r, g, b int) {
+	r, g, b, err := hexToRGB(hex)
+	if err != nil {
+		return -1, -1, -1
+	}
+	return
+}
+
+func hexToRGB(colour string) (r, g, b int, err error) {
+	colour, err = getHexColour(colour)
+	if err != nil {
+		return
+	}
+
+	rgb, err := strconv.ParseInt(colour, 16, 0)
+	if err != nil {
+		return
+	}
+
+	b = int(rgb % 0x100)
+	rgb /= 0x100
+
+	g = int(rgb % 0x100)
+	rgb /= 0x100
+
+	r = int(rgb)
+
+	return
+}
+
+func hexToDec(hex string) (int, error) {
+	n, err := strconv.ParseInt(hex, 16, 0)
+	if err != nil {
+		return 0, fmt.Errorf("'%s' is not a valid hex number", hex)
+	}
+	return int(n), nil
+}
+
 func isValidRGB(r, g, b int) bool {
 	if !in255range(r) || !in255range(g) || !in255range(b) {
 		return false
 	}
 	return true
+}
+
+func getHexColour(str string) (hex string, err error) {
+	// Remove leading '#', if any.
+	if str[0] == '#' {
+		str = str[1:]
+	}
+	// We only accept "#RRGGBB" or "RRGGBB" colours.
+	if len(str) != 6 {
+		return "", fmt.Errorf("'%s' is not a valid hex colour", str)
+	}
+	// It must be a valid hexadecimal number. Negatives are not allowed.
+	if !isHexNum(str) {
+		return "", fmt.Errorf("'%s' is not a valid hex number", str)
+	}
+
+	return str, nil
+}
+
+func isHexNum(str string) bool {
+	for _, r := range str {
+		if !isHexDigit(r) {
+			return false
+		}
+	}
+	return true
+}
+
+func isHexDigit(h rune) bool {
+	hexDigits := "0123456789ABCDEFabcdef"
+	for _, r := range hexDigits {
+		if r == h {
+			return true
+		}
+	}
+	return false
 }
 
 func in255range(n int) bool {

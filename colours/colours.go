@@ -166,6 +166,9 @@ func hexToRGB(colour string) (r, g, b int, err error) {
 		return
 	}
 
+	// If we've passed that check, colour contains a valid hex number,
+	// and ParseInt will never fail.
+
 	rgb, err := strconv.ParseInt(colour, 16, 0)
 	if err != nil {
 		return
@@ -183,6 +186,9 @@ func hexToRGB(colour string) (r, g, b int, err error) {
 }
 
 // getHexColour extracts the hex number from a string in the format "#RRGGBB" or "RRGGBB".
+// TODO: Is the validation of ParseInt enough? (We wouldn't need isHexNum and isHexDigit).
+// It isn't. We need to validate that these is a colour (0xRRGGBB) and not just an hex.
+// i.e. ParseInt won't give an error for "F000" (les than six digits) but we should.
 func getHexColour(str string) (hex string, err error) {
 	// Remove leading '#', if any.
 	if str[0] == '#' {

@@ -57,91 +57,103 @@ func (c *Colour) Code() string {
 
 // Reset empty the sequences. It will produce no changes beyond cleaning its state.
 // If you wish to use the default colours, use UseDefault instead.
-func (c *Colour) Reset() {
+func (c *Colour) Reset() *Colour {
 	c.ResetFg()
 	c.ResetBg()
+	return c
 }
 
 // ResetFg cleans the fg sequence. It doesn't set the default fg.
 // If you want to use the default fg use UseDefaultFg instead.
-func (c *Colour) ResetFg() {
+func (c *Colour) ResetFg() *Colour {
 	c.fg = ""
+	return c
 }
 
 // ResetBg cleans the bg sequence. It doesn't set the default bg.
 // If you want to use the default bg use UseDefaultBg instead.
-func (c *Colour) ResetBg() {
+func (c *Colour) ResetBg() *Colour {
 	c.bg = ""
+	return c
 }
 
 // UseDefault sets the default fg and bg.
-func (c *Colour) UseDefault() {
+func (c *Colour) UseDefault() *Colour {
 	c.UseDefaultFg()
 	c.UseDefaultBg()
+	return c
 }
 
 // UseDefaultFg sets the default fg.
-func (c *Colour) UseDefaultFg() {
+func (c *Colour) UseDefaultFg() *Colour {
 	c.fg = "39"
+	return c
 }
 
 // UseDefaultBg sets the default bg.
-func (c *Colour) UseDefaultBg() {
+func (c *Colour) UseDefaultBg() *Colour {
 	c.bg = "49"
+	return c
 }
 
 // SetFg sets the foreground colour in the 0-255 range.
 // If you pass an invalid value (n<0 or n>255) it will fallback on the default fg.
-func (c *Colour) SetFg(colour int) {
+func (c *Colour) SetFg(colour int) *Colour {
 	// Invalid argument? Don't panic! Just use the default colour.
 	if !in255range(colour) {
 		c.UseDefaultFg()
-		return
+		return c
 	}
 	c.fg = fmt.Sprintf("38:5:%d", colour)
+	return c
 }
 
 // SetBg sets the background colour in the 0-255 range.
 // If you pass an invalid value (n<0 or n>255) it will fallback on the default bg.
-func (c *Colour) SetBg(colour int) {
+func (c *Colour) SetBg(colour int) *Colour {
 	// Invalid argument? Don't panic! Just use the default colour.
 	if !in255range(colour) {
 		c.UseDefaultBg()
-		return
+		return c
 	}
 	c.bg = fmt.Sprintf("48:5:%d", colour)
+	return c
 }
 
 // SetFgRGB sets the foreground using rgb values.
 // Each value should be in the range 0-255, otherwise the default fg is used.
-func (c *Colour) SetFgRGB(r, g, b int) {
+func (c *Colour) SetFgRGB(r, g, b int) *Colour {
 	if !isValidRGB(r, g, b) {
 		c.UseDefaultFg()
-		return
+		return c
 	}
 	c.fg = fmt.Sprintf("38:2:%d:%d:%d", r, g, b)
+	return c
 }
 
 // SetBgRGB sets the background using rgb values.
 // Each value should be in the range 0-255, otherwise the default bg is used.
-func (c *Colour) SetBgRGB(r, g, b int) {
+func (c *Colour) SetBgRGB(r, g, b int) *Colour {
 	if !isValidRGB(r, g, b) {
 		c.UseDefaultBg()
-		return
+		return c
 	}
 	c.bg = fmt.Sprintf("48:2:%d:%d:%d", r, g, b)
+	return c
 }
 
 // SetFgHex sets the foreground to the hex colour provided.
 // If an invalid string/colour is given, the default fg is set instead.
-func (c *Colour) SetFgHex(colour string) {
+func (c *Colour) SetFgHex(colour string) *Colour {
 	c.SetFgRGB(fromHex(colour))
+	return c
 }
 
 // SetBgHex sets the background to the hex colour provided.
 // If an invalid string/colour is given, the default bg is set instead.
-func (c *Colour) SetBgHex(colour string) {
+func (c *Colour) SetBgHex(colour string) *Colour {
 	c.SetBgRGB(fromHex(colour))
+	return c
 }
 
 // fromHex is a wrapper around hexToRGB.

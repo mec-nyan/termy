@@ -1,69 +1,148 @@
 package termy
 
 import (
-	"errors"
+	"io"
+	"strconv"
 
-	"golang.org/x/sys/unix"
+	"github.com/mec-nyan/termy/colours"
+	"github.com/mec-nyan/termy/styles"
 )
 
-type TermSettings struct {
-	saved   unix.Termios
-	isSaved bool
-	fd      int
-	echo    bool
+type Termy struct {
+	colours.Colour
+	styles.Style
+	tty io.Writer
 }
 
-func New(fd int, echo bool) *TermSettings {
-	return &TermSettings{fd: fd, echo: echo}
+func NewTermy(w io.Writer) *Termy {
+	return &Termy{
+		Colour: colours.Colour{},
+		Style:  styles.Style{},
+		tty:    w,
+	}
 }
 
-// Cbreaky set the terminal (actually, STDIN) in a cbreak-like mode.
-// Accepts an optional bool to disable echo as well.
-// On success it saves the original state so you can retore it later.
-// Example usage:
-//
-// term := termy.New(int(os.Stdin.Fd()), false)
-// err := term.Cbreaky()
-// if err != nil ...
-// defer term.Restore()
-func (ts *TermSettings) Cbreaky() error {
-	termios, err := unix.IoctlGetTermios(ts.fd, unix.TIOCGETA)
-	if err != nil {
-		return err
-	}
-	ts.saved = *termios
-	ts.isSaved = true
+func (t *Termy) Code() string {
+	colourCode := t.Colour.Code()
+	styleCode := t.Style.Code()
 
-	if !ts.echo {
-		noEcho(termios)
+	if len(colourCode) == 0 {
+		return styleCode
 	}
-	noIcanon(termios)
 
-	err = unix.IoctlSetTermios(ts.fd, unix.TIOCSETA, termios)
-	if err != nil {
-		return err
+	if len(styleCode) == 0 {
+		return colourCode
 	}
-	return nil
+
+	return styleCode + ";" + colourCode
 }
 
-// Restore sets the terminal to its previous state.
-// It returns an error if the previous state was not saved.
-// Tipically you will call Restore after Cbreaky (probably with `defer`)
-func (ts *TermSettings) Restore() error {
-	if !ts.isSaved {
-		return errors.New("err: terminal stated was not previously saved")
+func (t *Termy) Escaped() string {
+	code := t.Code()
+	if len(code) > 0 {
+		return "\x1b[" + code + "m"
 	}
-	err := unix.IoctlSetTermios(ts.fd, unix.TIOCSETA, &ts.saved)
-	if err != nil {
-		return err
-	}
-	return nil
+
+	return ""
 }
 
-func noEcho(termios *unix.Termios) {
-	termios.Lflag &^= unix.ECHO
+func (t *Termy) Send() {
+	t.tty.Write([]byte(t.Escaped()))
 }
 
-func noIcanon(termios *unix.Termios) {
-	termios.Lflag &^= unix.ICANON
+func (t *Termy) write(s string) {
+	t.tty.Write([]byte(s))
+}
+
+func (t *Termy) Home() {
+	t.write(csi + "H")
+}
+
+func (t *Termy) ClearToEOL() {
+	t.write(csi + "K")
+}
+
+func (t *Termy) ClearToBOL() {
+	t.write(csi + "1K")
+}
+
+func (t *Termy) ClearToEOS() {
+	t.write(csi + "J")
+}
+
+func (t *Termy) ClearScreen() {
+	Home()
+	ClearToEOS()
+}
+
+func (t *Termy) SaveCurPos() {
+	t.write(esc + "7")
+}
+
+func (t *Termy) RestoreCurPos() {
+	t.write(esc + "8")
+}
+
+func (t *Termy) CurToCol(col int) {
+	t.write(csi + strconv.Itoa(col) + "G")
+}
+
+func (t *Termy) CurToRow(row int) {
+	t.write(csi + strconv.Itoa(row) + "dd")
+}
+
+func (t *Termy) Up() {
+	t.write(csi + "A")
+}
+
+func (t *Termy) Down() {
+	t.write(csi + "B")
+}
+
+func (t *Termy) Right() {
+	t.write(csi + "C")
+}
+
+func (t *Termy) Left() {
+	t.write(csi + "C")
+}
+
+func (t *Termy) MoveUp(lines int) {
+	for i := 0; i < lines; i++ {
+		Up()
+	}
+}
+
+func (t *Termy) MoveDown(lines int) {
+	for i := 0; i < lines; i++ {
+		Down()
+	}
+}
+
+func (t *Termy) MoveRight(lines int) {
+	for i := 0; i < lines; i++ {
+		Right()
+	}
+}
+
+func (t *Termy) MoveLeft(lines int) {
+	for i := 0; i < lines; i++ {
+		Left()
+	}
+}
+
+func (t *Termy) HideCur() {
+	t.write(csi + "?25l")
+}
+
+func (t *Termy) ShowCur() {
+	t.write(csi + "?25h")
+}
+
+func (t *Termy) EnterCaMode() {
+	t.write(csi + "?1049h")
+}
+
+func (t *Termy) ExitCaMode() {
+	t.write(csi + "?1049l")
 }

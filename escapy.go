@@ -1,36 +1,26 @@
+// escapy.go
+// These are standalone versions of the cursor manipulation functions.
+// They write directly to os.Stdout.
 package termy
 
 import (
 	"os"
-	"strconv"
 )
-
-// TODO: Should we use bytes/runes instead of strings?
-const (
-	esc = "\x1b"
-	csi = esc + "["
-)
-
-func write(s string) {
-	// TODO: Should we use bytes/runes instead of strings?
-	// TODO: Should we check for errors?
-	os.Stdout.Write([]byte(s))
-}
 
 func Home() {
-	write(csi + "H")
+	writeBytes(csi('H')...)
 }
 
 func ClearToEOL() {
-	write(csi + "K")
+	writeBytes(csi('K')...)
 }
 
 func ClearToBOL() {
-	write(csi + "1K")
+	writeBytes(csi('1', 'K')...)
 }
 
 func ClearToEOS() {
-	write(csi + "J")
+	writeBytes(csi('J')...)
 }
 
 func ClearScreen() {
@@ -39,35 +29,37 @@ func ClearScreen() {
 }
 
 func SaveCurPos() {
-	write(esc + "7")
+	writeBytes(escape('7')...)
 }
 
 func RestoreCurPos() {
-	write(esc + "8")
+	writeBytes(escape('8')...)
 }
 
 func CurToCol(col int) {
-	write(csi + strconv.Itoa(col) + "G")
+	code := append(intToBytes(col), 'G')
+	writeBytes(csi([]byte(code)...)...)
 }
 
 func CurToRow(row int) {
-	write(csi + strconv.Itoa(row) + "dd")
+	code := append(intToBytes(row), []byte{'d', 'd'}...)
+	writeBytes(csi([]byte(code)...)...)
 }
 
 func Up() {
-	write(csi + "A")
+	writeBytes(csi('A')...)
 }
 
 func Down() {
-	write(csi + "B")
+	writeBytes(csi('B')...)
 }
 
 func Right() {
-	write(csi + "C")
+	writeBytes(csi('c')...)
 }
 
 func Left() {
-	write(csi + "C")
+	writeBytes(csi('D')...)
 }
 
 func MoveUp(lines int) {
@@ -95,17 +87,60 @@ func MoveLeft(lines int) {
 }
 
 func HideCur() {
-	write(csi + "?25l")
+	writeBytes(csi('?', '2', '5', 'l')...)
 }
 
 func ShowCur() {
-	write(csi + "?25h")
+	writeBytes(csi('?', '2', '5', 'h')...)
 }
 
 func EnterCaMode() {
-	write(csi + "?1049h")
+	writeBytes(csi('?', '1', '0', '9', 'h')...)
 }
 
 func ExitCaMode() {
-	write(csi + "?1049l")
+	writeBytes(csi('?', '1', '0', '4', '9', 'l')...)
+}
+
+// Internal.
+
+func write(s string) {
+	// TODO: Should we use bytes/runes instead of strings?
+	// TODO: Should we check for errors?
+	os.Stdout.Write([]byte(s))
+}
+
+func writeBytes(b ...byte) {
+	os.Stdout.Write(b)
+}
+
+func escape(b ...byte) []byte {
+	return append([]byte{'\x1b'}, b...)
+}
+
+func csi(b ...byte) []byte {
+	return append([]byte{'\x1b', '['}, b...)
+}
+
+func intToBytes(n int) []byte {
+	out := []byte{}
+
+	for n > 0 {
+		x := n % 10
+		y := byte('0' + x)
+		out = append(out, y)
+		n /= 10
+	}
+
+	reverse(out)
+
+	return out
+}
+
+func reverse(runes []byte) {
+	var middle int = len(runes) / 2
+
+	for i := 0; i < middle; i++ {
+		runes[i], runes[len(runes)-(1+i)] = runes[len(runes)-(1+i)], runes[i]
+	}
 }

@@ -5,6 +5,7 @@ package termy
 
 import (
 	"os"
+	"strconv"
 )
 
 func Home() {
@@ -84,6 +85,10 @@ func MoveLeft(lines int) {
 	for i := 0; i < lines; i++ {
 		Left()
 	}
+}
+
+func MoveTo(row, col int) {
+	writeBytes(csi([]byte(strconv.Itoa(row) + ";" + strconv.Itoa(col) + "H")...)...)
 }
 
 func HideCur() {

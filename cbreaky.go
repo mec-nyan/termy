@@ -63,6 +63,16 @@ func (ts *TermSettings) Restore() error {
 	return nil
 }
 
+// TODO: Should size be part of "Termy"?
+// TODO: How should we handle "resize"?
+func (ts *TermSettings) Size() (rows, cols int, err error) {
+	ws, err := unix.IoctlGetWinsize(ts.fd, unix.TIOCGWINSZ)
+	if err != nil {
+		return 0, 0, err
+	}
+	return int(ws.Row), int(ws.Col), nil
+}
+
 func noEcho(termios *unix.Termios) {
 	termios.Lflag &^= unix.ECHO
 }

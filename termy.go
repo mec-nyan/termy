@@ -138,6 +138,11 @@ func (t *Termy) MoveUp(lines int) {
 	}
 }
 
+// Move cursor to line "y" col "x"
+func (t *Termy) MoveTo(x, y int) {
+	t.write(_csi + strconv.Itoa(y) + ";" + strconv.Itoa(x) + "H")
+}
+
 // Move cursor "lines" rows down.
 func (t *Termy) MoveDown(lines int) {
 	for i := 0; i < lines; i++ {

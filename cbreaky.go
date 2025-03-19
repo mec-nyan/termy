@@ -13,10 +13,12 @@ type TermSettings struct {
 	echo    bool
 }
 
-// New creates an instance of TermSettings to handle the terminal state.
+// NewTerminal creates an instance of TermSettings to handle the terminal state.
 // fd: file descriptor (as in os.Stdout.Fd()),
 // echo: Set to false to disable automatic echoing of user input.
-func New(fd int, echo bool) *TermSettings {
+// TODO: Kept (renamed) for backwards compatibility.
+// Use an instance of Termy instead.
+func NewTerminal(fd int, echo bool) *TermSettings {
 	return &TermSettings{fd: fd, echo: echo}
 }
 

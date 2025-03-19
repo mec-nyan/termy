@@ -2,6 +2,7 @@ package termy
 
 import (
 	"io"
+	"os"
 	"strconv"
 
 	"github.com/mec-nyan/termy/colours"
@@ -28,10 +29,19 @@ type Termy struct {
 
 // NewTermy sets up a new Termy struct to handle in-band signalling to the selected io.Writer.
 func NewTermy(w io.Writer) *Termy {
+	stdout, ok := w.(*os.File)
+	if !ok {
+		stdout = os.Stdout
+	}
+
 	return &Termy{
 		Colour: colours.Colour{},
 		Style:  styles.Style{},
 		tty:    w,
+		// The defaults are OK for the other fields.
+		TermSettings: TermSettings{
+			fd: int(stdout.Fd()),
+		},
 	}
 }
 

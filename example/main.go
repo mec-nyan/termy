@@ -20,6 +20,9 @@ func main() {
 	// Handle terminal colour and style.
 	term := termy.NewTermy(os.Stdout)
 
+	// Or through termy 😜
+	rows, cols, _ = term.Size()
+
 	// Save cursor position:
 	term.SaveCurPos()
 	term.HideCur()

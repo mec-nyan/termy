@@ -19,6 +19,11 @@ type Termy struct {
 	colours.Colour
 	styles.Style
 	tty io.Writer
+	// Experimental! 
+	// Access terminal settings/features through Termy
+	// TODO: If this works out fine, maybe rename "Termy" to something like "Screeny"
+	// and TermSettings to "Termy" 🤔
+	TermSettings
 }
 
 // NewTermy sets up a new Termy struct to handle in-band signalling to the selected io.Writer.

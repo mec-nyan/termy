@@ -9,7 +9,7 @@ import (
 
 func main() {
 	fd := int(os.Stdout.Fd())
-	ts := termy.New(fd, false)
+	ts := termy.NewTerminal(fd, false)
 
 	_ = ts.Cbreaky()
 	defer ts.Restore()

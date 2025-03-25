@@ -51,6 +51,44 @@ func (ts *TermSettings) Cbreaky() error {
 	return nil
 }
 
+func (ts *TermSettings) NoEcho() error {
+	termios, err := unix.IoctlGetTermios(ts.fd, unix.TIOCGETA)
+	if err != nil {
+		return err
+	}
+	if !ts.isSaved {
+		ts.saved = *termios
+		ts.isSaved = true
+	}
+
+	noEcho(termios)
+
+	err = unix.IoctlSetTermios(ts.fd, unix.TIOCSETA, termios)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ts *TermSettings) Echo() error {
+	termios, err := unix.IoctlGetTermios(ts.fd, unix.TIOCGETA)
+	if err != nil {
+		return err
+	}
+	if !ts.isSaved {
+		ts.saved = *termios
+		ts.isSaved = true
+	}
+
+	echo(termios)
+
+	err = unix.IoctlSetTermios(ts.fd, unix.TIOCSETA, termios)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Restore sets the terminal to its previous state.
 // It returns an error if the previous state was not saved.
 // Tipically you will call Restore after Cbreaky (probably with `defer`)
@@ -77,6 +115,10 @@ func (ts *TermSettings) Size() (rows, cols int, err error) {
 
 func noEcho(termios *unix.Termios) {
 	termios.Lflag &^= unix.ECHO
+}
+
+func echo(termios *unix.Termios) {
+	termios.Lflag |= unix.ECHO
 }
 
 func noIcanon(termios *unix.Termios) {

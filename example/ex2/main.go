@@ -17,7 +17,6 @@ func main() {
 
 	defer screen.Restore()
 
-
 	// Save cursor position:
 	screen.SaveCurPos()
 	screen.HideCur()
@@ -38,10 +37,43 @@ func main() {
 	screen.MoveDown(4)
 	fmt.Printf("Press any key to continue...")
 
-	buffer := make([]byte, 1)
-	os.Stdin.Read(buffer)
+	getc()
+
+	fmt.Print("\nEnter your name: ")
+	screen.Echo()
+
+Loop1:
+	for {
+		b := getc()
+		switch b {
+		case '\n':
+			break Loop1
+		default:
+		}
+	}
+
+	fmt.Print("\nEnter your password: ")
+	screen.NoEcho()
+
+Loop2:
+	for {
+		b := getc()
+		switch b {
+		case '\n':
+			break Loop2
+		default:
+		fmt.Print("*")
+		}
+	}
+
 
 	screen.RestoreCurPos()
 	screen.ClearToEOS()
 	screen.ShowCur()
+}
+
+func getc() byte {
+	buffer := make([]byte, 1)
+	os.Stdin.Read(buffer)
+	return buffer[0]
 }

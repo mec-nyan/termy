@@ -8,45 +8,47 @@ import (
 )
 
 func main() {
-	fd := int(os.Stdout.Fd())
-	ts := termy.NewTerminal(fd, false)
+	ts := termy.NewTerm(int(os.Stdout.Fd()))
 
-	_ = ts.Cbreaky()
+	_ = ts.UnCookIt()
 	defer ts.Restore()
 
 	// Get terminal size.
 	rows, cols, _ := ts.Size()
 
 	// Handle terminal colour and style.
-	term := termy.NewTermy(os.Stdout)
+	display, err := termy.NewDisplay(os.Stdout)
+	if err != nil {
+		panic(err)
+	}
 
 	// Or through termy 😜
-	rows, cols, _ = term.Size()
+	rows, cols, _ = display.Size()
 
 	// Save cursor position:
-	term.SaveCurPos()
-	term.HideCur()
-	term.Italics().Blink()
-	term.SetFgRGB(55, 255, 10).SetBgHex("#607080")
-	term.Send()
+	display.SaveCurPos()
+	display.HideCur()
+	display.Italics().Blink()
+	display.SetFgRGB(55, 255, 10).SetBgHex("#607080")
+	display.Send()
 
 	fmt.Printf("Hello from Termy!!")
 	// You can use the pkg global funcs.
 	termy.CurToCol(1)
 	termy.MoveDown(2)
 	fmt.Printf("(%d x %d)", rows, cols)
-	term.UseDefault()
-	term.Normal().Dim().Italics()
-	term.Send()
+	display.UseDefault()
+	display.Normal().Dim().Italics()
+	display.Send()
 	// Or the methods.
-	term.CurToCol(1)
-	term.MoveDown(4)
+	display.CurToCol(1)
+	display.MoveDown(4)
 	fmt.Printf("Press any key to continue...")
 
 	buffer := make([]byte, 1)
 	os.Stdin.Read(buffer)
 
-	term.RestoreCurPos()
-	term.ClearToEOS()
-	term.ShowCur()
+	display.RestoreCurPos()
+	display.ClearToEOS()
+	display.ShowCur()
 }

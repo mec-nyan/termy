@@ -9,8 +9,11 @@ import (
 
 func main() {
 	// Handle terminal colour and style.
-	screen := termy.NewTermy(os.Stdout)
-	_ = screen.Cbreaky()
+	screen, err := termy.NewDisplay(os.Stdout)
+	if err != nil {
+		panic(err)
+	}
+	_ = screen.UnCookIt()
 
 	// Or through termy 😜
 	rows, cols, _ := screen.Size()
@@ -62,10 +65,9 @@ Loop2:
 		case '\n':
 			break Loop2
 		default:
-		fmt.Print("*")
+			fmt.Print("*")
 		}
 	}
-
 
 	screen.RestoreCurPos()
 	screen.ClearToEOS()

@@ -1,4 +1,4 @@
-// escapy.go
+// control.go
 // These are standalone versions of the cursor manipulation functions.
 // They write directly to os.Stdout.
 package termy

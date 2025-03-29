@@ -13,7 +13,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	_ = screen.UnCookIt()
+	screen.UnCookIt()
+	screen.NoEcho()
 
 	// Or through termy 😜
 	rows, cols, _ := screen.Size()
@@ -23,19 +24,27 @@ func main() {
 	// Save cursor position:
 	screen.SaveCurPos()
 	screen.HideCur()
-	screen.Italics().Blink()
-	screen.SetFgRGB(20, 20, 20).SetBgHex("#FF8040")
-	screen.Send()
+
+	screen.Italics(true).
+		Blink(true).
+		SetFgRGB(20, 20, 20).
+		SetBgHex("#FF8040").
+		Send()
 
 	fmt.Printf("New Termy now integrates term settings!!")
-	// You can use the pkg global funcs.
+	// You can use the pkg global funcs...
 	termy.CurToCol(1)
 	termy.MoveDown(2)
+
 	fmt.Printf("(%d x %d)", rows, cols)
-	screen.UseDefault()
-	screen.Normal().Dim().Italics()
-	screen.Send()
-	// Or the methods.
+
+	screen.UseDefault().
+		Normal().
+		Dim(true).
+		Italics(true).
+		Send()
+
+	// ... or the methods.
 	screen.CurToCol(1)
 	screen.MoveDown(4)
 	fmt.Printf("Press any key to continue...")

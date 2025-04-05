@@ -1,4 +1,4 @@
-package colours
+package colour
 
 import "testing"
 

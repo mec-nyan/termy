@@ -1,5 +1,5 @@
 // Package colours generate the colour codes to be embedded in a colour escape sequence.
-package colours
+package colour
 
 import (
 	"fmt"

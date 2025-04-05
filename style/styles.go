@@ -1,6 +1,6 @@
 // Package styles serves to generate the sequence to signal in-band styles to the terminal.
 // It doesn't return escape sequences, so you can combine these i.e. with colours.
-package styles
+package style
 
 import "strconv"
 

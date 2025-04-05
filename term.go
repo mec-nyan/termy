@@ -11,8 +11,12 @@ type msg struct {
 }
 
 type Settings struct {
-	saved   unix.Termios
-	isSaved bool
+	// saved should only be written once and should be kept unchanged, so we can
+	// restore the terminal to its previous settings at the end of our program.
+	saved *unix.Termios
+	// current is used to keep track of the terminal current state,
+	// since we can turn some features on/off during the program execution.
+	current unix.Termios
 	fd      int
 }
 
@@ -30,8 +34,10 @@ func (s *Settings) Init() error {
 		return err
 	}
 
-	s.saved = *termios
-	s.isSaved = true
+	// Save the previous state of the terminal so we can restore it later.
+	s.saved = termios
+	// Save a COPY to keep track of current settings.
+	s.current = *termios
 
 	return nil
 }
@@ -56,6 +62,16 @@ func (s *Settings) NoEcho() error {
 	return s.set(nil, &echo)
 }
 
+func (s *Settings) Echoing() bool {
+	flag := s.current.Lflag & unix.ECHO
+	return flag == unix.ECHO
+}
+
+func (s *Settings) Cooked() bool {
+	flag := s.current.Lflag & unix.ICANON
+	return flag == unix.ICANON
+}
+
 // TODO: How should we handle "resize"?
 func (s *Settings) Size() (rows, cols int, err error) {
 	ws, err := unix.IoctlGetWinsize(s.fd, unix.TIOCGWINSZ)
@@ -67,17 +83,19 @@ func (s *Settings) Size() (rows, cols int, err error) {
 
 // Restore sets the terminal to its previous state.
 // It returns an error if the previous state was not saved.
-// Tipically you will call Restore after Cbreaky (probably with `defer`)
+// Typically you will call Restore after UnCookIt (probably with `defer`)
 func (s *Settings) Restore() error {
-	if !s.isSaved {
+	if s.saved == nil {
 		return errors.New("err: terminal stated was not previously saved")
 	}
-	err := unix.IoctlSetTermios(s.fd, unix.TIOCSETA, &s.saved)
+	err := unix.IoctlSetTermios(s.fd, unix.TIOCSETA, s.saved)
 	if err != nil {
 		return err
 	}
 	return nil
 }
+
+// -------- Internal -------- //
 
 func setEcho(termios *unix.Termios) {
 	termios.Lflag |= unix.ECHO
@@ -96,33 +114,32 @@ func setNoIcanon(termios *unix.Termios) {
 }
 
 func (s *Settings) set(icanon, echo *msg) error {
-	// Get the current state of the terminal.
-	// Actually, this will get the configuration for the file descriptor.
-	termios, err := unix.IoctlGetTermios(s.fd, unix.TIOCGETA)
-	if err != nil {
-		return err
-	}
+	// Make a copy in case the operation fails.
+	termios := s.current
 
 	if echo != nil {
 		if echo.on {
-			setEcho(termios)
+			setEcho(&termios)
 		} else {
-			setNoEcho(termios)
+			setNoEcho(&termios)
 		}
 	}
 
 	if icanon != nil {
 		if icanon.on {
-			setIcanon(termios)
+			setIcanon(&termios)
 		} else {
-			setNoIcanon(termios)
+			setNoIcanon(&termios)
 		}
 	}
 
-	err = unix.IoctlSetTermios(s.fd, unix.TIOCSETA, termios)
+	err := unix.IoctlSetTermios(s.fd, unix.TIOCSETA, &termios)
 	if err != nil {
 		return err
 	}
+
+	// Save the new state.
+	s.current = termios
 
 	return nil
 }

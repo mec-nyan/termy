@@ -2,6 +2,7 @@ package termy
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -465,6 +466,28 @@ func (d *Display) Print(s string) (int, error) {
 // PrintAt prints a utf-8 encoded string at (x, y).
 func (d *Display) PrintAt(x, y int, s string) (int, error) {
 	return d.PrintBytesAt(x, y, unsafeStrToBytes(s))
+}
+
+func (d *Display) CurPos() (int, int) {
+	// We don't want our terminal to print that to stdout.
+	if d.Echoing() {
+		d.NoEcho()
+		defer d.Echo()
+	}
+	// Not quite sure if we need this, but it seems like it.
+	if d.Cooked() {
+		d.UnCookIt()
+		defer d.CookIt()
+	}
+
+	x := 0
+	y := 0
+	// TODO: There has to be a better way using std[out|in] directly.
+	// It will work for now.
+	fmt.Print("\x1b[6n")
+	fmt.Scanf("\x1b[%d;%dR", &y, &x)
+
+	return x, y
 }
 
 // Internal.

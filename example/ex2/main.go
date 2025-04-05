@@ -8,6 +8,7 @@ import (
 	"github.com/mec-nyan/termy"
 )
 
+// TODO: Clean up this example (It's getting messy!)
 func main() {
 	// Handle terminal colour and style.
 	screen, err := termy.NewDisplay(os.Stdout)
@@ -52,6 +53,22 @@ func main() {
 
 	getc()
 
+	// ... or
+	var msg string
+	if screen.Echoing() {
+		msg = "\n\tI'm repeating everything you type!"
+	} else {
+		msg = "\n\tYour text disappears!"
+	}
+	screen.Print(msg)
+
+	if screen.Cooked() {
+		msg = "\n\tI'm in my normal state"
+	} else {
+		msg = "\n\tRaw raw raw!!!"
+	}
+	screen.Print(msg)
+
 	screen.Print("\nEnter your name: ")
 	screen.Echo()
 
@@ -75,17 +92,21 @@ Loop2:
 		case '\n':
 			break Loop2
 		default:
-			fmt.Print("*")
+			screen.Print("*")
 		}
 	}
+
+	// Get cursor position?
+	screen.Print("\n")
+	x, y := screen.CurPos()
+	screen.Print(fmt.Sprintf("\n\nCur pos? x: %d, y: %d", x, y))
+
+	getc()
 
 	screen.SetFg(4).Italics(true).Send()
 	screen.Print("\n\nLater mate!")
 
 	time.Sleep(1 * time.Second)
-	screen.RestoreCurPos()
-	screen.ClearToEOS()
-	screen.ShowCur()
 }
 
 func getc() byte {
@@ -95,7 +116,9 @@ func getc() byte {
 }
 
 func clean(screen *termy.Display) {
+	screen.RestoreCurPos()
+	screen.ClearToEOS()
+	screen.Restore()
 	screen.UseDefault()
 	screen.ShowCur()
-	screen.Restore()
 }

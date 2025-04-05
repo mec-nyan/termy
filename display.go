@@ -5,9 +5,10 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"unsafe"
 
-	"github.com/mec-nyan/termy/colours"
-	"github.com/mec-nyan/termy/styles"
+	"github.com/mec-nyan/termy/colour"
+	"github.com/mec-nyan/termy/style"
 )
 
 const (
@@ -18,13 +19,9 @@ const (
 // Display struct handles in-band colour and style commands for its tty.
 // tty would normally be os.Stdout.
 type Display struct {
-	colours.Colour
-	styles.Style
+	colour.Colour
+	style.Style
 	tty io.Writer
-	// Experimental!
-	// Access terminal settings/features through Termy
-	// TODO: If this works out fine, maybe rename "Termy" to something like "Screeny"
-	// and Settings to "Termy" 🤔
 	Settings
 }
 
@@ -42,8 +39,8 @@ func NewDisplay(w io.Writer) (*Display, error) {
 	}
 
 	return &Display{
-		Colour:   colours.Colour{},
-		Style:    styles.Style{},
+		Colour:   colour.Colour{},
+		Style:    style.Style{},
 		tty:      w,
 		Settings: *settings,
 	}, nil
@@ -434,7 +431,52 @@ func (d *Display) CurlyUnderline() *Display {
 	return d
 }
 
+// Printing functions that can be accessed directly.
+
+// PrintBytes prints out a slice of bytes.
+func (d *Display) PrintBytes(b []byte) (int, error) {
+	return d.tty.Write(b)
+}
+
+// PrintBytesAt prints a slice of byte at (x, y).
+func (d *Display) PrintBytesAt(x, y int, b []byte) (int, error) {
+	// TODO: Boundary check.
+	d.MoveTo(x, y)
+	return d.PrintBytes(b)
+}
+
+// TODO: PrintNBytes should count COLUMNS and not BYTES nor CHARACTERS.
+func (d *Display) PrintNBytes(cols int, b []byte) (int, error) {
+	return 0, nil
+}
+
+// TODO: PrintNBytes should count COLUMNS and not BYTES nor CHARACTERS.
+func (d *Display) PrintNBytesAt(x, y, cols int, b []byte) (int, error) {
+	return 0, nil
+}
+
+// Print prints a utf-8 encoded string.
+func (d *Display) Print(s string) (int, error) {
+	// Oh yes, Go is a memory safe language... or is it?
+	return d.PrintBytes(unsafeStrToBytes(s))
+
+}
+
+// PrintAt prints a utf-8 encoded string at (x, y).
+func (d *Display) PrintAt(x, y int, s string) (int, error) {
+	return d.PrintBytesAt(x, y, unsafeStrToBytes(s))
+}
+
 // Internal.
 func (d *Display) write(s string) {
 	d.tty.Write([]byte(s))
+}
+
+// Memory safe language my a**
+// We can use []byte(s) but it seems to be, lets say, not ideal...
+func unsafeStrToBytes(s string) []byte {
+	if s == "" {
+		return nil
+	}
+	return unsafe.Slice(unsafe.StringData(s), len(s))
 }

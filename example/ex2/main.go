@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/mec-nyan/termy"
 )
@@ -16,10 +17,10 @@ func main() {
 	screen.UnCookIt()
 	screen.NoEcho()
 
+	defer clean(screen)
+
 	// Or through termy 😜
 	rows, cols, _ := screen.Size()
-
-	defer screen.Restore()
 
 	// Save cursor position:
 	screen.SaveCurPos()
@@ -31,12 +32,12 @@ func main() {
 		SetBgHex("#FF8040").
 		Send()
 
-	fmt.Printf("New Termy now integrates term settings!!")
+	screen.Print("New Termy now integrates term settings!!")
 	// You can use the pkg global funcs...
 	termy.CurToCol(1)
 	termy.MoveDown(2)
 
-	fmt.Printf("(%d x %d)", rows, cols)
+	screen.Print(fmt.Sprintf("(%d x %d)", rows, cols))
 
 	screen.UseDefault().
 		Normal().
@@ -47,11 +48,11 @@ func main() {
 	// ... or the methods.
 	screen.CurToCol(1)
 	screen.MoveDown(4)
-	fmt.Printf("Press any key to continue...")
+	screen.Print("This is some text for u 🩷")
 
 	getc()
 
-	fmt.Print("\nEnter your name: ")
+	screen.Print("\nEnter your name: ")
 	screen.Echo()
 
 Loop1:
@@ -64,7 +65,7 @@ Loop1:
 		}
 	}
 
-	fmt.Print("\nEnter your password: ")
+	screen.Print("\nEnter your password: ")
 	screen.NoEcho()
 
 Loop2:
@@ -78,6 +79,10 @@ Loop2:
 		}
 	}
 
+	screen.SetFg(4).Italics(true).Send()
+	screen.Print("\n\nLater mate!")
+
+	time.Sleep(1 * time.Second)
 	screen.RestoreCurPos()
 	screen.ClearToEOS()
 	screen.ShowCur()
@@ -87,4 +92,10 @@ func getc() byte {
 	buffer := make([]byte, 1)
 	os.Stdin.Read(buffer)
 	return buffer[0]
+}
+
+func clean(screen *termy.Display) {
+	screen.UseDefault()
+	screen.ShowCur()
+	screen.Restore()
 }

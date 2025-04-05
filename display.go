@@ -77,7 +77,7 @@ func (d *Display) escaped() string {
 
 // Send actually sends the in-band signal to the terminal/selected writer.
 func (d *Display) Send() {
-	d.tty.Write([]byte(d.escaped()))
+	d.tty.Write(unsafeStrToBytes(d.escaped()))
 }
 
 // Cursor manipulation:

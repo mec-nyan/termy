@@ -8,24 +8,43 @@ import (
 	"github.com/mec-nyan/termy"
 )
 
-// TODO: Clean up this example (It's getting messy!)
 func main() {
 	// Handle terminal colour and style.
 	screen, err := termy.NewDisplay(os.Stdout)
 	if err != nil {
 		panic(err)
 	}
-	screen.UnCookIt()
-	screen.NoEcho()
-
 	defer clean(screen)
 
-	// Or through termy 😜
-	rows, cols, _ := screen.Size()
+	setup(screen)
 
-	// Save cursor position:
+	showInfo(screen)
+	showLove(screen)
+
+	lookupState(screen)
+
+	getName(screen)
+	getPassword(screen)
+
+	showCurPos(screen)
+
+	bye(screen)
+}
+
+func setup(screen *termy.Display) {
+	// Disable line buffering.
+	screen.UnCookIt()
+	// Do not output user input straight away.
+	screen.NoEcho()
+
+	// Save cursor position: We'll clear the screen and leave everything as it was
+	// before our app started.
 	screen.SaveCurPos()
 	screen.HideCur()
+}
+
+func showInfo(screen *termy.Display) {
+	rows, cols, _ := screen.Size()
 
 	screen.Italics(true).
 		Blink(true).
@@ -39,7 +58,9 @@ func main() {
 	termy.MoveDown(2)
 
 	screen.Print(fmt.Sprintf("(%d x %d)", rows, cols))
+}
 
+func showLove(screen *termy.Display) {
 	screen.UseDefault().
 		Normal().
 		Dim(true).
@@ -52,8 +73,9 @@ func main() {
 	screen.Print("This is some text for u 🩷")
 
 	getc()
+}
 
-	// ... or
+func lookupState(screen *termy.Display) {
 	var msg string
 	if screen.Echoing() {
 		msg = "\n\tI'm repeating everything you type!"
@@ -68,44 +90,50 @@ func main() {
 		msg = "\n\tRaw raw raw!!!"
 	}
 	screen.Print(msg)
+}
 
+func getName(screen *termy.Display) {
 	screen.Print("\nEnter your name: ")
 	screen.Echo()
 
-Loop1:
 	for {
 		b := getc()
 		switch b {
 		case '\n':
-			break Loop1
+			return
 		default:
 		}
 	}
+}
 
+func getPassword(screen *termy.Display) {
 	screen.Print("\nEnter your password: ")
 	screen.NoEcho()
 
-Loop2:
+Loop:
 	for {
 		b := getc()
 		switch b {
 		case '\n':
-			break Loop2
+			break Loop
 		default:
 			screen.Print("*")
 		}
 	}
-
-	// Get cursor position?
 	screen.Print("\n")
+}
+
+func showCurPos(screen *termy.Display) {
 	x, y := screen.CurPos()
+
 	screen.Print(fmt.Sprintf("\n\nCur pos? x: %d, y: %d", x, y))
 
 	getc()
+}
 
+func bye(screen *termy.Display) {
 	screen.SetFg(4).Italics(true).Send()
 	screen.Print("\n\nLater mate!")
-
 	time.Sleep(1 * time.Second)
 }
 

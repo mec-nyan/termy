@@ -1,87 +1,60 @@
 package termy
 
 import (
-	"errors"
 	"fmt"
-	"io"
-	"os"
 	"strconv"
-	"unsafe"
 
-	"github.com/mec-nyan/termy/colour"
-	"github.com/mec-nyan/termy/style"
+	"github.com/mec-nyan/termy/byteme"
+	"github.com/mec-nyan/termy/printer"
+	"github.com/mec-nyan/termy/term"
 )
 
 const (
+	// CSI (Control sequence introducer) is sent before most control codes.
 	_csi = "\x1b["
+	// ESC is used before some control codes that don't begin with the CSI.
 	_esc = "\x1b"
 )
 
-// Display struct handles in-band colour and style commands for its tty.
-// tty would normally be os.Stdout.
+const (
+	// These flags lets us keep track of some internal state.
+	altBuf uint = 1 << iota
+	altCharSet
+)
+
+// Display takes care of handling your terminal and setting things up for your application.
+// It allows you to set the terminal to the desired state (i.e. enable/disable line buffering)
+// and controls in-band signalling for it.
+// It also connects your program with the three file streams STDOUT, STDIN and STDERR.
 type Display struct {
-	colour.Colour
-	style.Style
-	tty io.Writer
-	Settings
+	term.Settings
+	printer.Printer
+	flags uint
 }
 
-// NewDisplay sets up a new Display struct to handle in-band signalling to the selected io.Writer.
-func NewDisplay(w io.Writer) (*Display, error) {
-	stdout, ok := w.(*os.File)
-	if !ok {
-		return nil, errors.New("Failed to initialise display.")
-	}
+// NewDisplay initialise a new Display structure with the default settings.
+// For now I'm keeping that name "NewDisplay" instead of just "New" since it's
+// more explicit about what it really does.
+func NewDisplay() (*Display, error) {
+	printer := printer.New()
 
-	settings := NewTerm(int(stdout.Fd()))
+	settings := term.New(int(printer.Stdout.Fd()))
+
 	err := settings.Init()
 	if err != nil {
 		return nil, err
 	}
 
 	return &Display{
-		Colour:   colour.Colour{},
-		Style:    style.Style{},
-		tty:      w,
 		Settings: *settings,
+		Printer:  printer,
 	}, nil
 }
 
-// Code generates the code for the currently selected colours and/or style.
-// It doesn't prepend the CSI.
-func (d *Display) Code() string {
-	colourCode := d.Colour.Code()
-	styleCode := d.Style.Code()
+///////////////////////////////
+// ** Cursor manipulation ** //
+///////////////////////////////
 
-	if len(colourCode) == 0 {
-		return styleCode
-	}
-
-	if len(styleCode) == 0 {
-		return colourCode
-	}
-
-	return styleCode + ";" + colourCode
-}
-
-// escaped converts the colour and style sequence in an in-band command.
-// prepending the CSI and appending a terminator string.
-func (d *Display) escaped() string {
-	code := d.Code()
-	if len(code) > 0 {
-		return "\x1b[" + code + "m"
-	}
-
-	return ""
-}
-
-// Send actually sends the in-band signal to the terminal/selected writer.
-func (d *Display) Send() {
-	d.tty.Write(unsafeStrToBytes(d.escaped()))
-}
-
-// Cursor manipulation:
-//
 // Home moves the cursor to the top left corner of the terminal.
 func (d *Display) Home() {
 	d.write(_csi + "H")
@@ -193,22 +166,38 @@ func (d *Display) ShowCur() {
 
 // Enter alt buffer mode.
 func (d *Display) EnterAltBuf() {
+	if d.inAltBuf() {
+		return
+	}
 	d.write(_csi + "?1049h")
+	// Set flag to save state.
+	d.flags |= altBuf
 }
 
 // Exit alt buffer mode.
 func (d *Display) ExitAltBuf() {
-	d.write(_csi + "?1049l")
+	if d.inAltBuf() {
+		d.write(_csi + "?1049l")
+		// Clear flag.
+		d.flags &^= altBuf
+	}
 }
 
 // Enter alternate character set mode.
 func (d *Display) EnterACS() {
+	if d.inAltCharSet() {
+		return
+	}
 	d.write(_esc + "(0")
+	d.flags |= altCharSet
 }
 
 // Exit alternate character set mode.
 func (d *Display) ExitACS() {
-	d.write(_esc + "(B")
+	if d.inAltCharSet() {
+		d.write(_esc + "(B")
+		d.flags &^= altCharSet
+	}
 }
 
 // Delete character.
@@ -324,6 +313,29 @@ func (d *Display) SetBgHex(colour string) *Display {
 	return d
 }
 
+// Code generates the code for the currently selected colours and/or style.
+// It doesn't prepend the CSI.
+// NOTE: This function may not need to be exported.
+func (d *Display) Code() string {
+	colourCode := d.Colour.Code()
+	styleCode := d.Style.Code()
+
+	if len(colourCode) == 0 {
+		return styleCode
+	}
+
+	if len(styleCode) == 0 {
+		return colourCode
+	}
+
+	return styleCode + ";" + colourCode
+}
+
+// Send actually sends the in-band signal to the terminal/selected writer.
+func (d *Display) Send() {
+	d.Stdout.Write(byteme.UnsafeStrToBytes(d.escaped()))
+}
+
 // Text style.
 
 // Reset all style attributes.
@@ -436,7 +448,7 @@ func (d *Display) CurlyUnderline() *Display {
 
 // PrintBytes prints out a slice of bytes.
 func (d *Display) PrintBytes(b []byte) (int, error) {
-	return d.tty.Write(b)
+	return d.Stdout.Write(b)
 }
 
 // PrintBytesAt prints a slice of byte at (x, y).
@@ -459,13 +471,13 @@ func (d *Display) PrintNBytesAt(x, y, cols int, b []byte) (int, error) {
 // Print prints a utf-8 encoded string.
 func (d *Display) Print(s string) (int, error) {
 	// Oh yes, Go is a memory safe language... or is it?
-	return d.PrintBytes(unsafeStrToBytes(s))
+	return d.PrintBytes(byteme.UnsafeStrToBytes(s))
 
 }
 
 // PrintAt prints a utf-8 encoded string at (x, y).
 func (d *Display) PrintAt(x, y int, s string) (int, error) {
-	return d.PrintBytesAt(x, y, unsafeStrToBytes(s))
+	return d.PrintBytesAt(x, y, byteme.UnsafeStrToBytes(s))
 }
 
 func (d *Display) CurPos() (int, int) {
@@ -491,15 +503,41 @@ func (d *Display) CurPos() (int, int) {
 }
 
 // Internal.
+
+// write is a wrapper for Stdout.Write.
 func (d *Display) write(s string) {
-	d.tty.Write([]byte(s))
+	d.Stdout.Write(byteme.UnsafeStrToBytes(s))
 }
 
-// Memory safe language my a**
-// We can use []byte(s) but it seems to be, lets say, not ideal...
-func unsafeStrToBytes(s string) []byte {
-	if s == "" {
-		return nil
+// escaped converts the colour and style sequence in an in-band command.
+// prepending the CSI and appending a terminator string.
+func (d *Display) escaped() string {
+	code := d.Code()
+	if len(code) > 0 {
+		return "\x1b[" + code + "m"
 	}
-	return unsafe.Slice(unsafe.StringData(s), len(s))
+
+	return ""
+}
+
+// Flags handling.
+
+// Check if the display is in alternate buffer mode.
+// NOTE: This is internal. It will check the state saved by our application.
+// It will NOT check your emulator state directly.
+// If the terminal was put in alt buf mode by any other way (i.e. you print the codes directly)
+// this will not reflect that. (BTW don't do that! Use the methods provided).
+func (d *Display) inAltBuf() bool {
+	f := d.flags & altBuf
+	return f == altBuf
+}
+
+// Check if the display is in alternate character set mode.
+// NOTE: This is internal. It will check the state saved by our application.
+// It will NOT check your emulator state directly.
+// If the terminal was put in ACS mode by any other way (i.e. you print the codes directly)
+// this will not reflect that. (BTW don't do that! Use the methods provided).
+func (d *Display) inAltCharSet() bool {
+	f := d.flags & altCharSet
+	return f == altCharSet
 }

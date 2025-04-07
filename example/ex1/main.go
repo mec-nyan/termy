@@ -10,7 +10,7 @@ import (
 func main() {
 
 	// Handle terminal colour and style.
-	display, err := termy.NewDisplay(os.Stdout)
+	display, err := termy.NewDisplay()
 	if err != nil {
 		panic(err)
 	}

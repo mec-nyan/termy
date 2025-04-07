@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	screen, err := termy.NewDisplay(os.Stdout)
+	screen, err := termy.NewDisplay()
 	if err != nil {
 		panic(err)
 	}
@@ -28,7 +28,7 @@ func main() {
 		screen.Print(fmt.Sprintf("%4d│", i))
 	}
 
-	printer := printer.New(os.Stdout)
+	printer := printer.New()
 
 	screen.MoveTo(7, 1)
 

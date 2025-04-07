@@ -1,4 +1,4 @@
-package termy
+package term
 
 import (
 	"errors"
@@ -20,7 +20,7 @@ type Settings struct {
 	fd      int
 }
 
-func NewTerm(fd int) *Settings {
+func New(fd int) *Settings {
 	return &Settings{
 		fd: fd,
 	}

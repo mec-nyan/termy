@@ -1,5 +1,5 @@
 /*
-Package printe tries to separete the process of setting colours,
+Package prints tries to separate the process of setting colours,
 styles and printing to the terminal from the display.
 
 TODO: In this stage a lot of the functionality will be duplicated.
@@ -8,22 +8,25 @@ Some of it may be useful in the Display object for more simple cases.
 package printer
 
 import (
-	"io"
-	"unsafe"
-
+	"github.com/mec-nyan/termy/byteme"
 	"github.com/mec-nyan/termy/colour"
 	"github.com/mec-nyan/termy/style"
+	"github.com/mec-nyan/termy/tty"
 )
 
 // Printer prints to the writer with selected colour and style.
 type Printer struct {
 	colour.Colour
 	style.Style
-	writer io.Writer
+	tty.TTY
 }
 
-func New(w io.Writer) *Printer {
-	return &Printer{writer: w}
+func New() Printer {
+	return Printer{
+		Colour: colour.Colour{},
+		Style:  style.Style{},
+		TTY:    tty.New(),
+	}
 }
 
 // Set the foreground colour using the terminal's theme.
@@ -257,30 +260,22 @@ func (p *Printer) escaped() string {
 
 // Send actually sends the in-band signal to the terminal/selected writer.
 func (p *Printer) Send() {
-	p.writer.Write(unsafeStrToBytes(p.escaped()))
+	p.Stdout.Write(byteme.UnsafeStrToBytes(p.escaped()))
 }
 
 // PrintBytes prints out a slice of bytes with the printer style.
 func (p *Printer) PrintBytes(b []byte) (int, error) {
 	p.Send()
 	// Should we clear at the end?
-	b = append(b, unsafeStrToBytes("\x1b[0m")...)
-	return p.writer.Write(b)
+	// Maybe not, but we're doing it for now.
+	b = append(b, byteme.UnsafeStrToBytes("\x1b[0m")...)
+	return p.Stdout.Write(b)
 }
 
 // Print prints a utf-8 encoded string.
 func (p *Printer) Print(s string) (int, error) {
 	// Oh yes, Go is a memory safe language... or is it?
-	return p.PrintBytes(unsafeStrToBytes(s))
+	return p.PrintBytes(byteme.UnsafeStrToBytes(s))
 }
 
 // -------- Internal -------- //
-
-// Memory safe language my a**
-// We can use []byte(s) but it seems to be, lets say, not ideal...
-func unsafeStrToBytes(s string) []byte {
-	if s == "" {
-		return nil
-	}
-	return unsafe.Slice(unsafe.StringData(s), len(s))
-}
